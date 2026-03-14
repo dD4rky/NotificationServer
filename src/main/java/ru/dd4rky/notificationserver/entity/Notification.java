@@ -3,16 +3,18 @@ package ru.dd4rky.notificationserver.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
+import lombok.Setter;
 import org.aspectj.weaver.ast.Not;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Entity
 @Table(name="notifications")
 public class Notification {
     @Id @GeneratedValue(strategy = GenerationType.UUID)
-    private Long id;
+    private UUID uuid;
     private LocalDateTime created;
     @Enumerated(EnumType.ORDINAL)
     private NotificationStatus status;
