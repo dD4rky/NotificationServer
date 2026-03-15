@@ -2,19 +2,24 @@ package ru.dd4rky.notificationserver.service;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.stereotype.Service;
 import ru.dd4rky.notificationserver.entity.Notification;
 import ru.dd4rky.notificationserver.exceptions.EmptyFieldException;
 import ru.dd4rky.notificationserver.repository.NotificationRepository;
+import ru.dd4rky.notificationserver.service.sender.INotificationSender;
 
 import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class NotificationService {
     private final NotificationRepository notificationRepository;
+    private final INotificationSender notificationSender;
 
     @Transactional
     public Notification createAndSendNotification(Notification notification) {
@@ -25,12 +30,18 @@ public class NotificationService {
             throw new EmptyFieldException("message cannot be empty");
         }
         notification.setCreated(LocalDateTime.now());
-        notification.setStatus(Notification.NotificationStatus.UNDEFINED);
-        Notification stagedEntity = notificationRepository.save(notification);
+        Notification stagedEntity = updateNotificationStatus(notification, Notification.NotificationStatus.UNDEFINED);
+        Notification createdEntity = updateNotificationStatus(stagedEntity, Notification.NotificationStatus.CREATED);
 
-        stagedEntity.setStatus(Notification.NotificationStatus.CREATED);
-
-        return notificationRepository.save(stagedEntity);
+        notificationSender.invokeSendingMessage(
+                updateNotificationStatus(createdEntity, Notification.NotificationStatus.IN_PROCESS)
+            )
+            .exceptionally((exception) -> {
+                throw new RuntimeException(exception);
+            })
+            .thenAccept((message) -> updateNotificationStatus(createdEntity, Notification.NotificationStatus.DELIVERED));
+        log.info("Notification created: {}:{}", createdEntity.getUuid(), createdEntity.getStatus());
+        return createdEntity;
     }
 
     public Notification.NotificationStatus getNotificationStatusByUUID(UUID uuid) {
@@ -39,5 +50,13 @@ public class NotificationService {
             return Notification.NotificationStatus.UNDEFINED;
         }
         return notification.getStatus();
+    }
+
+    private Notification updateNotificationStatus(@NotNull Notification entity, Notification.NotificationStatus status) {
+        entity.setStatus(status);
+        Notification updatedEntity = notificationRepository.save(entity);
+        log.info("Notification status updated: {}:{}", updatedEntity.getUuid(), status);
+
+        return updatedEntity;
     }
 }

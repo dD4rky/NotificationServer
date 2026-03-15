@@ -3,8 +3,6 @@ package ru.dd4rky.notificationserver.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
-import lombok.Setter;
-import org.aspectj.weaver.ast.Not;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -33,5 +31,9 @@ public class Notification {
         NotificationStatus(int code) {
             this.code = code;
         }
+    }
+
+    public String prepareMessageToSending() {
+        return ("From: %s\n\r" + "-".repeat(10) + "\n\r%s").formatted(this.initiator, this.message);
     }
 }

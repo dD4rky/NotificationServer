@@ -1,6 +1,7 @@
 package ru.dd4rky.notificationserver.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -11,6 +12,7 @@ import ru.dd4rky.notificationserver.service.NotificationService;
 import java.net.URI;
 import java.util.UUID;
 
+@Slf4j
 @RequiredArgsConstructor()
 @Controller
 @RequestMapping("/notification")
