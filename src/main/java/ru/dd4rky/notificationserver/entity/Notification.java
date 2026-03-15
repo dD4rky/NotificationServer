@@ -34,6 +34,6 @@ public class Notification {
     }
 
     public String prepareMessageToSending() {
-        return ("From: %s\n\r" + "-".repeat(10) + "\n\r%s").formatted(this.initiator, this.message);
+        return ("From: %s\n\r" + "-".repeat(20) + "\n\r%s").formatted(this.initiator, this.message);
     }
 }

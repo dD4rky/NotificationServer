@@ -1,0 +1,12 @@
+*.iml
+*.md
+.idea
+.gradle
+.gitignore
+.gitattributes
+build
+gradle
+Dockerfile
+docker-compose.yml
+db-init.sql
+postgres-data
