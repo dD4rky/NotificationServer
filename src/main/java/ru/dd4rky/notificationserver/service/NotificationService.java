@@ -1,5 +1,6 @@
 package ru.dd4rky.notificationserver.service;
 
+import jakarta.annotation.PostConstruct;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import ru.dd4rky.notificationserver.repository.NotificationRepository;
 import ru.dd4rky.notificationserver.service.sender.INotificationSender;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -33,17 +35,22 @@ public class NotificationService {
         Notification stagedEntity = updateNotificationStatus(notification, Notification.NotificationStatus.UNDEFINED);
         Notification createdEntity = updateNotificationStatus(stagedEntity, Notification.NotificationStatus.CREATED);
 
-        notificationSender.invokeSendingMessage(
-                updateNotificationStatus(createdEntity, Notification.NotificationStatus.IN_PROCESS)
-            )
-            .exceptionally((exception) -> {
-                throw new RuntimeException(exception);
-            })
-            .thenAccept((message) -> updateNotificationStatus(createdEntity, Notification.NotificationStatus.DELIVERED));
+        sendNotification(createdEntity);
+
         log.info("Notification created: {}:{}", createdEntity.getUuid(), createdEntity.getStatus());
         return createdEntity;
     }
 
+    private void sendNotification(Notification entity) {
+        notificationSender.invokeSendingMessage(
+                updateNotificationStatus(entity, Notification.NotificationStatus.IN_PROCESS)
+            )
+            .exceptionally((exception) -> {
+                throw new RuntimeException(exception);
+            })
+            .thenAccept((message) -> updateNotificationStatus(entity, Notification.NotificationStatus.DELIVERED));
+    }
+    
     public Notification.NotificationStatus getNotificationStatusByUUID(UUID uuid) {
         Notification notification = notificationRepository.findNotificationByUuid(uuid);
         if (Objects.isNull(notification)) {
@@ -58,5 +65,11 @@ public class NotificationService {
         log.info("Notification status updated: {}:{}", updatedEntity.getUuid(), status);
 
         return updatedEntity;
+    }
+    @PostConstruct
+    private void sendWaitingNotifications() {
+        List<Notification> unsentNotifications = notificationRepository.findUnsentNotifications();
+
+        unsentNotifications.forEach(this::sendNotification);
     }
 }
